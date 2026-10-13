@@ -342,6 +342,9 @@ script.on_event(defines.events.on_built_entity, function(event)
 		belt_choice = spec.belt_choice,
 		belt_direction = belt_direction,
 		x_start = spec[1].x_start,
+		is_space = spec.is_space,
+		landfill_choice = spec.landfill_choice,
+		space_landfill_choice = spec.space_landfill_choice,
 	}
 	
 	table.insert(storage.immediate_tasks, beltinator_state)

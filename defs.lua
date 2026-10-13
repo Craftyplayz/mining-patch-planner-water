@@ -132,6 +132,9 @@
 ---@field coords Coords
 ---@field direction_choice DirectionString
 ---@field belt_choice string
+---@field is_space boolean?
+---@field landfill_choice boolean? Omit landfill if true
+---@field space_landfill_choice string?
 ---@field count number Belt count
 ---@field ungrouped boolean Is first step when belts are spaced out?
 ---@field _renderables LuaRenderObject[]
