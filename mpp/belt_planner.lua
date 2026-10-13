@@ -145,42 +145,9 @@ function belt_planner.layout(state)
 	-- local belt_direction = mpp_util.clamped_rotation(((-defines.direction[state.direction_choice]) % ROTATION)-EAST, world_direction)
 	local belt_direction = world_direction
 	
-	local create_entity = builder.create_entity_builder(state, {do_deconstruction=true})
-
-	-- Place landfill under belts the same way the main layout does under its entities
-	if not state.landfill_choice then
-		local create_belt = create_entity
-		local surface, player = state.surface, state.player
-		local space_landfill_tile = state.is_space and prototypes.tile[state.space_landfill_choice or ""]
-
-		create_entity = function(ghost, check_allowed)
-			local result = create_belt(ghost, check_allowed)
-			if not result then return result end
-
-			local fill = surface.get_tile(result.position.x, result.position.y)
-			if not fill.valid or fill.name == "out-of-map" then return result end
-
-			local cover_tile
-			if state.is_space then
-				if fill.name == "se-space" then cover_tile = space_landfill_tile end
-			elseif fill.collides_with("water_tile") then
-				cover_tile = fill.prototype.default_cover_tile
-			end
-
-			if cover_tile then
-				surface.create_entity{
-					raise_built=true,
-					name="tile-ghost",
-					player=player,
-					force=player.force,
-					position=fill.position,
-					inner_name=cover_tile.name,
-				}
-			end
-			return result
-		end
-	end
-
+	-- Landfill goes under belts the same way the main layout does under its entities
+	local create_entity = builder.create_entity_builder(state, {do_deconstruction=true, do_landfill=not state.landfill_choice})
+	
 	-- rendering.clear()
 
 	local plan_east, plan_vertical, plan_west

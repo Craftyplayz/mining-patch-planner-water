@@ -1,3 +1,4 @@
+local floor = math.floor
 local direction = defines.direction
 local mpp_util = require("mpp.mpp_util")
 local EAST, NORTH, SOUTH, WEST, ROTATION = mpp_util.directions()
@@ -28,6 +29,7 @@ local quality_enabled = script.feature_flags.quality
 
 ---@class EntityBuilderOptions
 ---@field do_deconstruction boolean?
+---@field do_landfill boolean? Place landfill tile ghosts under built entities on water (or space)
 
 --- Builder for a convenience function that automatically translates
 --- internal grid state for a surface.create_entity call
@@ -53,7 +55,45 @@ function builder.create_entity_builder(state, opts)
 	local _player = state.player
 	local _force = _player.force
 	local _build_check_type = defines.build_check_type.blueprint_ghost
-	
+
+	local is_space = state.is_space
+	local space_landfill_tile = is_space and prototypes.tile[state.space_landfill_choice or ""]
+
+	---@param x number
+	---@param y number
+	local function place_landfill(x, y)
+		local tx, ty = floor(x), floor(y)
+		local area = {{tx+.1, ty+.1}, {tx+.9, ty+.9}}
+		-- same tile search as the main layout's landfill step
+		local fill
+		if is_space then
+			fill = surface.find_tiles_filtered{area=area, name="se-space", limit=1}[1]
+		else
+			fill = surface.find_tiles_filtered{area=area, collision_mask="water_tile", limit=1}[1]
+		end
+		if not fill or fill.name == "out-of-map" then return end
+
+		local cover_tile = fill.prototype.default_cover_tile
+		if not cover_tile then
+			return
+		elseif is_space then
+			cover_tile = space_landfill_tile
+			if not cover_tile then return end
+		end
+
+		local tile_ghost = surface.create_entity{
+			raise_built=true,
+			name="tile-ghost",
+			player=_player,
+			force=_force,
+			position=fill.position,
+			inner_name=cover_tile.name,
+		}
+		if tile_ghost and collected_ghosts then
+			collected_ghosts[#collected_ghosts+1] = tile_ghost
+		end
+	end
+
 	return function(ghost, check_allowed)
 		ghost.raise_built = true
 		ghost.player = _player
@@ -111,6 +151,10 @@ function builder.create_entity_builder(state, opts)
 			-- 	color = {1, 0, 0},
 			-- 	surface = surface,
 			-- }
+		end
+
+		if opts.do_landfill then
+			place_landfill(position[1], position[2])
 		end
 
 		local result = surface.create_entity(ghost)
