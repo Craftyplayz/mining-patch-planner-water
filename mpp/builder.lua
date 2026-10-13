@@ -62,25 +62,20 @@ function builder.create_entity_builder(state, opts)
 	---@param x number
 	---@param y number
 	local function place_landfill(x, y)
-		local tx, ty = floor(x), floor(y)
-		local area = {{tx+.1, ty+.1}, {tx+.9, ty+.9}}
-		-- same tile search as the main layout's landfill step
-		local fill
-		if is_space then
-			fill = surface.find_tiles_filtered{area=area, name="se-space", limit=1}[1]
-		else
-			fill = surface.find_tiles_filtered{area=area, collision_mask="water_tile", limit=1}[1]
-		end
-		if not fill or fill.name == "out-of-map" then return end
-
+		local stats = state._landfill_stats
+		if stats then stats.checked = stats.checked + 1 end
+		
+		local fill = surface.get_tile(floor(x), floor(y))
+		if not fill.valid or fill.name == "out-of-map" then return end
+		
+		-- Water tiles are the ones that define a cover tile (landfill)
 		local cover_tile = fill.prototype.default_cover_tile
-		if not cover_tile then
-			return
-		elseif is_space then
-			cover_tile = space_landfill_tile
-			if not cover_tile then return end
+		if is_space then
+			cover_tile = fill.name == "se-space" and space_landfill_tile or nil
 		end
-
+		if not cover_tile then return end
+		if stats then stats.water = stats.water + 1 end
+		
 		local tile_ghost = surface.create_entity{
 			raise_built=true,
 			name="tile-ghost",
@@ -89,8 +84,11 @@ function builder.create_entity_builder(state, opts)
 			position=fill.position,
 			inner_name=cover_tile.name,
 		}
-		if tile_ghost and collected_ghosts then
-			collected_ghosts[#collected_ghosts+1] = tile_ghost
+		if tile_ghost then
+			if stats then stats.placed = stats.placed + 1 end
+			if collected_ghosts then
+				collected_ghosts[#collected_ghosts+1] = tile_ghost
+			end
 		end
 	end
 

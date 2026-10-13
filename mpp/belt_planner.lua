@@ -19,6 +19,7 @@ local coord_convert, coord_revert = mpp_util.coord_convert, mpp_util.coord_rever
 ---@field is_space boolean?
 ---@field landfill_choice boolean? Omit landfill if true
 ---@field space_landfill_choice string?
+---@field _landfill_stats {checked: number, water: number, placed: number}?
 
 ---@class BeltOutputPosition
 ---@field x number
@@ -146,6 +147,7 @@ function belt_planner.layout(state)
 	local belt_direction = world_direction
 	
 	-- Landfill goes under belts the same way the main layout does under its entities
+	state._landfill_stats = {checked=0, water=0, placed=0}
 	local create_entity = builder.create_entity_builder(state, {do_deconstruction=true, do_landfill=not state.landfill_choice})
 	
 	-- rendering.clear()
@@ -439,6 +441,12 @@ function belt_planner.layout(state)
 	else
 		output_positions = plan_vertical(tx, ty, belt_direction)
 	end
+
+	-- TEMP diagnostics for belt planner landfill
+	local stats = state._landfill_stats
+	state.player.print(("[MPP] belt planner landfill: enabled=%s space=%s, belt tiles checked=%d, water=%d, landfill ghosts placed=%d"):format(
+		tostring(not state.landfill_choice), tostring(state.is_space), stats.checked, stats.water, stats.placed
+	))
 	
 	--[[ debug rendering
 	local C = state.coords
